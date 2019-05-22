@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Welcome - Calculator App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" media="screen" href="css/main.css" />
+</head>
+<body>
+
+<!--Error notification -->
+  <div id="notification">
+    <p><b>Error:</b> <span id="errorMessage">Statement is not valid.</span></p>
+  </div>
+
+<!-- Main Content -->
+  <div class="mainContent">
+    <h3 class="appTitle">Calculator App</h3>
+    <table>
+        <tbody>
+          <tr>
+            <td colspan="4" class="inputTd">
+              <input type="text" id="screen" readonly>
+            </td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>8</td>
+            <td>9</td>
+            <td>/</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>5</td>
+            <td>6</td>
+            <td>*</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>2</td>
+            <td>3</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td>.</td>
+            <td>0</td>
+            <td>=</td>
+            <td>+</td>
+          </tr>
+          <tr>
+            <td colspan="4" class="clearTd">
+              Clear
+            </td>
+          </tr>
+        </tbody>
+    </table>
+  </div>
+
+  <script>
+
+
+    /**Calculator app
+     *
+     * @type {HTMLElement}
+     * * get  reference to the input element that allows
+     * users to provide mathematical statements
+     */
+    let screen = document.getElementById('screen');
+
+    /***
+     *
+     * @type {Array}
+     * array to keep track of the values selected
+     * acceptable value format: a + b, a - b, a * b or a / b. only two values are accepted
+     * for mathematical manipulation
+     * the array keeps track of only three values, a ie 123 at index 0 , operand ie + at index 1 and b ie 34 at index 2
+     * [123, '+', 34]
+     */
+    let inputs = [];
+
+
+    /***
+     *
+     * @type {boolean}
+     * calculator accepts only one mathematical operand at a time. thus 3 + 4 is valid but 4 - 5 + 4
+     * is not valid
+     * if an operand is selected by user, set this value to true, so that no further operand is accepted
+     */
+    let operandSelected = false;
+
+    /***
+     *
+     * @type {string}
+     * name of the operand, add, subtract, multiply, divide
+     */
+    let operand = '';
+
+
+    /***
+     *
+     * @type {string}
+     * CONSTANTS
+     */
+    const SUBTRACT = 'subtract';
+    const ADD = "add";
+    const MULTIPLY = "multiply";
+    const DIVIDE = "divide";
+
+    //initialize click listener to the buttons
+    initializeCalculatorButtons();
+
+
+    /***
+     *  Add click listener to the calculator buttons
+     */
+    function initializeCalculatorButtons() {
+      //add click event listener to the buttons
+      let tds = document.getElementsByTagName('td');
+      // console.log(tds);
+      Array.from(tds).forEach(td => {
+        // console.log(td);
+        td.addEventListener('click', event => {
+          // console.log(typeof event.target.innerText);
+          // console.log(event.target.innerText);
+          handleCalculatorButtonClicks(event.target.innerText);
+        });
+      });
+    }
+
+
+    /***
+     * function to handle the clicked values
+     * @param value string
+     */
+    function handleCalculatorButtonClicks(value) {
+      switch (value) {
+        case "Clear":
+          clearScreen();
+          break;
+        case "=":
+          //if user did not input any operand (add, subtract etc), then mathematical statement is invalid
+          operandSelected ? computeValues() : errorMessage("You must write a valid statement.");
+          break;
+        default:
+          //if value is an operand and operand is selected, do not write to screen
+          if(isOperand(value.toString()) && operandSelected) {
+            console.log("You cannot select multiple operands in a mathematical statement");
+            errorMessage("You cannot select multiple operands in a mathematical statement");
+            return;
+          }
+          //write value to screen
+          writeToScreen(value.toString());
+      }
+
+     
+    }
+
+
+    /***
+     * check if selected value is operand or not
+     * @param value
+     * @returns {boolean}
+     */
+    function isOperand(value) {
+      return (value === '+' || value === '-' || value === '*' || value === '/');
+    }
+
+
+    /***
+     * return the name of the operand
+     * @param value
+     * @returns {string}
+     */
+    function operandName(value) {
+      switch (value) {
+        case '+':
+          return ADD;
+        case '-':
+          return SUBTRACT;
+        case '*':
+          return MULTIPLY;
+        case '/':
+          return DIVIDE;
+        default:
+          return ADD;
+      }
+    }
+
+
+    /***
+     * return the symbol of the string operand (add, subtract)
+     * @param operand
+     * @returns {string}
+     */
+    function operandSymbol(operand) {
+      switch (operand) {
+        case ADD:
+          return '+';
+        case SUBTRACT:
+          return '-';
+        case MULTIPLY:
+          return '*';
+        case DIVIDE:
+          return '/';
+        default:
+          return '+';
+      }
+    }
+
+
+    /***
+     * Writes content to screen of the calculator
+     * @param content
+     */
+    function writeToScreen(content) {
+      //if input value is an operand, +,-,/,*, set operandSelected to true
+      //keep track of selected operand for further calculation
+      if(isOperand(content)) {
+        operandSelected = true;
+        operand = operandName(content);
+      }
+      //write to screen the content
+      screen.value += content;
+      //add the content (selected value by user) to an array
+      inputs.push(content);
+      console.log(inputs);
+    }
+
+
+    /***
+     * computes the values entered by the user
+     * Generates mathematical statement in the form a + b
+     * Gets the symbol for the operand selected by user
+     * Check statement validity
+     */
+    function computeValues() {
+
+      let statement = mathematicalStatement();
+      let symbol = operandSymbol(operand);
+
+      console.log("statement", statement);
+      console.log("operand", operand);
+      console.log("symbol", symbol);
+
+      //make sure the statement has 2  elements, ie: a, b
+      checkStatementValidity(statement, symbol);
+
+    }
+
+    /***
+     * Ensure user entered a valid mathematical statement before computing
+     * @param statement String Format is a + b
+     * @param symbol String Format is +, -, /, *
+     */
+    function checkStatementValidity(statement, symbol) {
+      //statement format is a + b, split into a and b using the operand symbol, ie +
+      let elements = statement.split(symbol);
+      console.log(elements);
+
+      //final statement should be 2 and none of the value should be empty
+      let validStatement = elements.length === 2 && elements[0] !== "" && elements[1] !== "";
+
+      //if statement is valid, compute output
+      if(validStatement) {
+        let output = computeOutput(elements);
+        console.log("Output", output);
+
+        clearScreen();
+        writeToScreen(output);
+
+      } else {
+        console.log("Statement is not valid");
+        errorMessage("Statement is not valid");
+      }
+    }
+
+    /***
+     * Loops through the array of stored inputs and generates a mathematical statement in the form
+     * a + b
+     * @returns {string}
+     */
+    function mathematicalStatement() {
+      let statement = '';
+      inputs.forEach(input => {
+        statement += input;
+      });
+     return statement;
+    }
+
+    /***
+     * Computes values a and b using the appropriate selected operand
+     * @param elements
+     * @returns {*}
+     */
+    function computeOutput(elements) {
+      //element contains values at index 0 and  1
+      //convert them to number
+      let a = Number(elements[0]);
+      let b = Number(elements[1]);
+
+      switch (operand) {
+        case ADD:
+          return a + b;
+        case SUBTRACT:
+          return a - b;
+        case DIVIDE:
+          let result = a / b;
+          //if b is zero, it is a mathematical error represented in JavaScript as Infinity
+          if(result === Infinity) {
+            console.log("Cannot perform division.");
+            errorMessage("Cannot perform division.");
+            //return the statement again
+            return a + '/' + b;
+          }
+          return a / b;
+        case MULTIPLY:
+          return a * b;
+        default:
+          return a + b;
+      }
+    }
+
+    /***
+     * Clears screen
+     */
+    function clearScreen() {
+      //set screen to empty string
+      screen.value = "";
+      //destroy the input array
+      inputs.splice(0);
+      console.log(inputs);
+      //set operand selected to false to reset it
+      operandSelected = false;
+    }
+
+    /***
+     * Sets the display for the Notification div to block, visible
+     */
+    function showErrorNotification() {
+      document.getElementById("notification").style.display = "block";
+    }
+
+    /***
+     * Sets the display for the Notification div to none, invisible
+     */
+    function hideErrorNotification() {
+      document.getElementById("notification").style.display = "none";
+    }
+
+    /***
+     * Passes error message to notification element
+     * @param message
+     */
+    function errorMessage(message) {
+      //sets the text to the notification element
+      document.getElementById("errorMessage").innerText = message;
+      //displays notification
+      showErrorNotification();
+
+      //hides notification after 5 seconds
+      setTimeout(function () {
+        hideErrorNotification();
+      }, 5000);
+
+    }
+    
+  </script>
+</body>
+</html>
